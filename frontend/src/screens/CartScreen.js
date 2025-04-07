@@ -9,6 +9,19 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Form from 'react-bootstrap/Form';
+
+// Add CSS to hide number input spinners
+const noSpinnerStyle = `
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+`;
 
 export default function CartScreen() {
   const navigate = useNavigate();
@@ -20,7 +33,11 @@ export default function CartScreen() {
   const updateCartHandler = async (item, quantity) => {
     const { data } = await axios.get(`/api/products/${item._id}`);
     if (data.countInStock < quantity) {
-      window.alert('Sorry. Product is out of stock');
+      window.alert(`抱歉，商品庫存只剩下 ${data.countInStock} 件`);
+      return;
+    }
+    if (quantity < 1) {
+      window.alert('商品數量必須大於 0');
       return;
     }
     ctxDispatch({
@@ -28,6 +45,14 @@ export default function CartScreen() {
       payload: { ...item, quantity },
     });
   };
+
+  const handleQuantityChange = async (item, event) => {
+    const newQuantity = parseInt(event.target.value);
+    if (!isNaN(newQuantity)) {
+      await updateCartHandler(item, newQuantity);
+    }
+  };
+
   const removeItemHandler = (item) => {
     ctxDispatch({ type: 'CART_REMOVE_ITEM', payload: item });
   };
@@ -38,15 +63,16 @@ export default function CartScreen() {
 
   return (
     <div>
+      <style>{noSpinnerStyle}</style>
       <Helmet>
-        <title>Shopping Cart</title>
+        <title>購物車</title>
       </Helmet>
-      <h1>Shopping Cart</h1>
+      <h1>購物車</h1>
       <Row>
         <Col md={8}>
           {cartItems.length === 0 ? (
             <MessageBox>
-              Cart is empty. <Link to="/">Go Shopping</Link>
+              購物車是空的。 <Link to="/">去購物</Link>
             </MessageBox>
           ) : (
             <ListGroup>
@@ -71,7 +97,18 @@ export default function CartScreen() {
                       >
                         <i className="fas fa-minus-circle"></i>
                       </Button>{' '}
-                      <span>{item.quantity}</span>{' '}
+                      <Form.Control
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(item, e)}
+                        style={{
+                          width: '70px',
+                          display: 'inline',
+                          textAlign: 'center',
+                        }}
+                        min="1"
+                        max={item.countInStock}
+                      />{' '}
                       <Button
                         variant="light"
                         onClick={() =>
@@ -81,6 +118,9 @@ export default function CartScreen() {
                       >
                         <i className="fas fa-plus-circle"></i>
                       </Button>
+                      <div className="mt-1 text-muted small">
+                        庫存: {item.countInStock}
+                      </div>
                     </Col>
                     <Col md={3}>${item.price}</Col>
                     <Col md={2}>
@@ -103,8 +143,8 @@ export default function CartScreen() {
               <ListGroup variant="flush">
                 <ListGroup.Item>
                   <h3>
-                    Subtotal ({cartItems.reduce((a, c) => a + c.quantity, 0)}{' '}
-                    items) : $
+                    小計 ({cartItems.reduce((a, c) => a + c.quantity, 0)}{' '}
+                    件商品) : $
                     {cartItems.reduce((a, c) => a + c.price * c.quantity, 0)}
                   </h3>
                 </ListGroup.Item>
@@ -116,7 +156,7 @@ export default function CartScreen() {
                       onClick={checkoutHandler}
                       disabled={cartItems.length === 0}
                     >
-                      Proceed to Checkout
+                      結帳
                     </Button>
                   </div>
                 </ListGroup.Item>

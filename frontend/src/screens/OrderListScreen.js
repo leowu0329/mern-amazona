@@ -87,12 +87,50 @@ export default function OrderListScreen() {
     }
   };
 
+  const updatePaymentStatus = async (order) => {
+    if (window.confirm('確定要更新付款狀態嗎？')) {
+      try {
+        await axios.put(
+          `/api/orders/${order._id}/pay`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          },
+        );
+        toast.success('付款狀態已更新');
+        // Refresh the orders list
+        dispatch({ type: 'DELETE_RESET' });
+      } catch (err) {
+        toast.error(getError(err));
+      }
+    }
+  };
+
+  const updateDeliveryStatus = async (order) => {
+    if (window.confirm('確定要更新配送狀態嗎？')) {
+      try {
+        await axios.put(
+          `/api/orders/${order._id}/deliver`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          },
+        );
+        toast.success('配送狀態已更新');
+        // Refresh the orders list
+        dispatch({ type: 'DELETE_RESET' });
+      } catch (err) {
+        toast.error(getError(err));
+      }
+    }
+  };
+
   return (
     <div>
       <Helmet>
-        <title>Orders</title>
+        <title>訂單列表</title>
       </Helmet>
-      <h1>Orders</h1>
+      <h1>訂單列表</h1>
       {loadingDelete && <LoadingBox></LoadingBox>}
       {loading ? (
         <LoadingBox></LoadingBox>
@@ -102,28 +140,68 @@ export default function OrderListScreen() {
         <table className="table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>USER</th>
-              <th>DATE</th>
-              <th>TOTAL</th>
-              <th>PAID</th>
-              <th>DELIVERED</th>
-              <th>ACTIONS</th>
+              <th>訂單編號</th>
+              <th>客戶</th>
+              <th>日期</th>
+              <th>總金額</th>
+              <th>付款方式</th>
+              <th>付款狀態</th>
+              <th>配送狀態</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((order) => (
               <tr key={order._id}>
                 <td>{order._id}</td>
-                <td>{order.user ? order.user.name : 'DELETED USER'}</td>
+                <td>{order.user ? order.user.name : '已刪除用戶'}</td>
                 <td>{order.createdAt.substring(0, 10)}</td>
                 <td>{order.totalPrice.toFixed(2)}</td>
-                <td>{order.isPaid ? order.paidAt.substring(0, 10) : 'No'}</td>
-
+                <td>{order.paymentMethod}</td>
                 <td>
-                  {order.isDelivered
-                    ? order.deliveredAt.substring(0, 10)
-                    : 'No'}
+                  {order.paymentMethod === 'CashOnDelivery' ? (
+                    order.isDelivered ? (
+                      order.isPaid ? (
+                        '已付款'
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline-success"
+                          size="sm"
+                          onClick={() => updatePaymentStatus(order)}
+                        >
+                          標記為已付款
+                        </Button>
+                      )
+                    ) : (
+                      '待送達'
+                    )
+                  ) : order.isPaid ? (
+                    '已付款'
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => updatePaymentStatus(order)}
+                    >
+                      標記為已付款
+                    </Button>
+                  )}
+                </td>
+                <td>
+                  {order.isDelivered ? (
+                    `已送達 ${order.deliveredAt.substring(0, 10)}`
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => updateDeliveryStatus(order)}
+                    >
+                      標記為已送達
+                    </Button>
+                  )}
                 </td>
                 <td>
                   <Button
@@ -133,7 +211,7 @@ export default function OrderListScreen() {
                       navigate(`/order/${order._id}`);
                     }}
                   >
-                    Details
+                    詳細
                   </Button>
                   &nbsp;
                   <Button
@@ -141,7 +219,7 @@ export default function OrderListScreen() {
                     variant="light"
                     onClick={() => deleteHandler(order)}
                   >
-                    Delete
+                    刪除
                   </Button>
                 </td>
               </tr>

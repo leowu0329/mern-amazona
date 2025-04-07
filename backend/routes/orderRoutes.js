@@ -14,7 +14,7 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const orders = await Order.find().populate('user', 'name');
     res.send(orders);
-  })
+  }),
 );
 
 orderRouter.post(
@@ -34,7 +34,7 @@ orderRouter.post(
 
     const order = await newOrder.save();
     res.status(201).send({ message: 'New Order Created', order });
-  })
+  }),
 );
 
 orderRouter.get(
@@ -78,7 +78,7 @@ orderRouter.get(
       },
     ]);
     res.send({ users, orders, dailyOrders, productCategories });
-  })
+  }),
 );
 
 orderRouter.get(
@@ -87,7 +87,7 @@ orderRouter.get(
   expressAsyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user._id });
     res.send(orders);
-  })
+  }),
 );
 
 orderRouter.get(
@@ -100,7 +100,7 @@ orderRouter.get(
     } else {
       res.status(404).send({ message: 'Order Not Found' });
     }
-  })
+  }),
 );
 
 orderRouter.put(
@@ -116,7 +116,7 @@ orderRouter.put(
     } else {
       res.status(404).send({ message: 'Order Not Found' });
     }
-  })
+  }),
 );
 
 orderRouter.put(
@@ -125,42 +125,59 @@ orderRouter.put(
   expressAsyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id).populate(
       'user',
-      'email name'
+      'email name',
     );
     if (order) {
-      order.isPaid = true;
-      order.paidAt = Date.now();
-      order.paymentResult = {
-        id: req.body.id,
-        status: req.body.status,
-        update_time: req.body.update_time,
-        email_address: req.body.email_address,
-      };
+      if (order.paymentMethod === 'CashOnDelivery') {
+        if (order.isDelivered) {
+          order.isPaid = true;
+          order.paidAt = Date.now();
+          order.paymentResult = {
+            id: Date.now(),
+            status: 'COMPLETED',
+            update_time: Date.now(),
+            email_address: 'cash@delivery',
+          };
+          const updatedOrder = await order.save();
+          res.send({ message: '訂單已付款', order: updatedOrder });
+        } else {
+          res.status(400).send({ message: '訂單尚未送達，無法標記為已付款' });
+        }
+      } else {
+        order.isPaid = true;
+        order.paidAt = Date.now();
+        order.paymentResult = {
+          id: req.body.id,
+          status: req.body.status,
+          update_time: req.body.update_time,
+          email_address: req.body.email_address,
+        };
 
-      const updatedOrder = await order.save();
-      mailgun()
-        .messages()
-        .send(
-          {
-            from: 'Amazona <amazona@mg.yourdomain.com>',
-            to: `${order.user.name} <${order.user.email}>`,
-            subject: `New order ${order._id}`,
-            html: payOrderEmailTemplate(order),
-          },
-          (error, body) => {
-            if (error) {
-              console.log(error);
-            } else {
-              console.log(body);
-            }
-          }
-        );
+        const updatedOrder = await order.save();
+        mailgun()
+          .messages()
+          .send(
+            {
+              from: 'Amazona <amazona@mg.yourdomain.com>',
+              to: `${order.user.name} <${order.user.email}>`,
+              subject: `New order ${order._id}`,
+              html: payOrderEmailTemplate(order),
+            },
+            (error, body) => {
+              if (error) {
+                console.log(error);
+              } else {
+                console.log(body);
+              }
+            },
+          );
 
-      res.send({ message: 'Order Paid', order: updatedOrder });
+        res.send({ message: 'Order Paid', order: updatedOrder });
+      }
     } else {
       res.status(404).send({ message: 'Order Not Found' });
     }
-  })
+  }),
 );
 
 orderRouter.delete(
@@ -175,7 +192,7 @@ orderRouter.delete(
     } else {
       res.status(404).send({ message: 'Order Not Found' });
     }
-  })
+  }),
 );
 
 export default orderRouter;

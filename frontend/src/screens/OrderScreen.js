@@ -100,7 +100,7 @@ export default function OrderScreen() {
           details,
           {
             headers: { authorization: `Bearer ${userInfo.token}` },
-          }
+          },
         );
         dispatch({ type: 'PAY_SUCCESS', payload: data });
         toast.success('Order is paid');
@@ -177,7 +177,7 @@ export default function OrderScreen() {
         {},
         {
           headers: { authorization: `Bearer ${userInfo.token}` },
-        }
+        },
       );
       dispatch({ type: 'DELIVER_SUCCESS', payload: data });
       toast.success('Order is delivered');
@@ -229,23 +229,37 @@ export default function OrderScreen() {
           </Card>
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Payment</Card.Title>
+              <Card.Title>付款方式</Card.Title>
               <Card.Text>
-                <strong>Method:</strong> {order.paymentMethod}
+                <strong>付款方式:</strong> {order.paymentMethod}
               </Card.Text>
-              {order.isPaid ? (
+              {order.paymentMethod === 'CashOnDelivery' ? (
+                order.isDelivered ? (
+                  order.isPaid ? (
+                    <MessageBox variant="success">
+                      已於 {order.paidAt.substring(0, 10)} 付款
+                    </MessageBox>
+                  ) : (
+                    <MessageBox variant="warning">
+                      訂單已送達，等待確認付款
+                    </MessageBox>
+                  )
+                ) : (
+                  <MessageBox variant="info">送貨時付款，尚未送達</MessageBox>
+                )
+              ) : order.isPaid ? (
                 <MessageBox variant="success">
-                  Paid at {order.paidAt}
+                  已於 {order.paidAt.substring(0, 10)} 付款
                 </MessageBox>
               ) : (
-                <MessageBox variant="danger">Not Paid</MessageBox>
+                <MessageBox variant="danger">尚未付款</MessageBox>
               )}
             </Card.Body>
           </Card>
 
           <Card className="mb-3">
             <Card.Body>
-              <Card.Title>Items</Card.Title>
+              <Card.Title>訂單項目</Card.Title>
               <ListGroup variant="flush">
                 {order.orderItems.map((item) => (
                   <ListGroup.Item key={item._id}>
@@ -304,17 +318,23 @@ export default function OrderScreen() {
                 </ListGroup.Item>
                 {!order.isPaid && (
                   <ListGroup.Item>
-                    {isPending ? (
-                      <LoadingBox />
-                    ) : (
-                      <div>
-                        <PayPalButtons
-                          createOrder={createOrder}
-                          onApprove={onApprove}
-                          onError={onError}
-                        ></PayPalButtons>
-                      </div>
-                    )}
+                    {order.paymentMethod === 'PayPal' ? (
+                      isPending ? (
+                        <LoadingBox />
+                      ) : (
+                        <div>
+                          <PayPalButtons
+                            createOrder={createOrder}
+                            onApprove={onApprove}
+                            onError={onError}
+                          ></PayPalButtons>
+                        </div>
+                      )
+                    ) : order.paymentMethod === 'CashOnDelivery' ? (
+                      <MessageBox variant="info">
+                        此訂單為貨到付款，將在送達時收取款項
+                      </MessageBox>
+                    ) : null}
                     {loadingPay && <LoadingBox></LoadingBox>}
                   </ListGroup.Item>
                 )}

@@ -14,7 +14,7 @@ export default function PaymentMethodScreen() {
   } = state;
 
   const [paymentMethodName, setPaymentMethod] = useState(
-    paymentMethod || 'PayPal'
+    paymentMethod || 'PayPal',
   );
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export default function PaymentMethodScreen() {
       navigate('/shipping');
     }
   }, [shippingAddress, navigate]);
+
   const submitHandler = (e) => {
     e.preventDefault();
     ctxDispatch({ type: 'SAVE_PAYMENT_METHOD', payload: paymentMethodName });
@@ -33,9 +34,9 @@ export default function PaymentMethodScreen() {
       <CheckoutSteps step1 step2 step3></CheckoutSteps>
       <div className="container small-container">
         <Helmet>
-          <title>Payment Method</title>
+          <title>付款方式</title>
         </Helmet>
-        <h1 className="my-3">Payment Method</h1>
+        <h1 className="my-3">付款方式</h1>
         <Form onSubmit={submitHandler}>
           <div className="mb-3">
             <Form.Check
@@ -50,15 +51,15 @@ export default function PaymentMethodScreen() {
           <div className="mb-3">
             <Form.Check
               type="radio"
-              id="Stripe"
-              label="Stripe"
-              value="Stripe"
-              checked={paymentMethodName === 'Stripe'}
+              id="CashOnDelivery"
+              label="貨到付款"
+              value="CashOnDelivery"
+              checked={paymentMethodName === 'CashOnDelivery'}
               onChange={(e) => setPaymentMethod(e.target.value)}
             />
           </div>
           <div className="mb-3">
-            <Button type="submit">Continue</Button>
+            <Button type="submit">繼續</Button>
           </div>
         </Form>
       </div>
